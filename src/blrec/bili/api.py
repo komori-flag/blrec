@@ -3,7 +3,10 @@ import hashlib
 from abc import ABC
 from datetime import datetime
 from typing import Any, Dict, Final, List, Mapping, Optional
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote, parse_qs
+import requests
+import time
+from functools import reduce
 
 import aiohttp
 from loguru import logger
@@ -291,9 +294,15 @@ class WebApi(BaseApi):
         json_res = await self._get_json(self.base_api_urls, path, params=params)
         return json_res['data']
 
-    async def get_danmu_info(self, room_id: int) -> ResponseData:
+    async def get_danmu_info(self, room_id: int, cookie: str) -> ResponseData:
         path = '/xlive/web-room/v1/index/getDanmuInfo'
-        params = {'id': room_id}
+        params = {
+            'id': room_id,
+            "type": 0,
+            }
+        w_rid, wts = wbi_sign_params(params.copy(), cookie)
+        params["w_rid"] = w_rid
+        params["wts"] = wts
         json_res = await self._get_json(self.base_live_api_urls, path, params=params)
         return json_res['data']
 
@@ -301,3 +310,58 @@ class WebApi(BaseApi):
         path = '/x/web-interface/nav'
         json_res = await self._get_json(self.base_api_urls, path, check_response=False)
         return json_res
+    
+    
+    
+    
+mixinKeyEncTab = [
+    46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49,
+    33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40,
+    61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63, 57, 62, 11,
+    36, 20, 34, 44, 52
+]
+
+def getMixinKey(orig: str):
+    '对 imgKey 和 subKey 进行字符顺序打乱编码'
+    return reduce(lambda s, i: s + orig[i], mixinKeyEncTab, '')[:32]
+
+def encWbi(params: dict, img_key: str, sub_key: str):
+    '为请求参数进行 wbi 签名'
+    mixin_key = getMixinKey(img_key + sub_key)
+    curr_time = round(time.time())
+    params['wts'] = curr_time                                   # 添加 wts 字段
+    params = dict(sorted(params.items()))                       # 按照 key 重排参数
+    # 过滤 value 中的 "!'()*" 字符
+    params = {
+        k : ''.join(filter(lambda chr: chr not in "!'()*", str(v)))
+        for k, v 
+        in params.items()
+    }
+    query = urlencode(params)                      # 序列化参数
+    wbi_sign = hashlib.md5((query + mixin_key).encode()).hexdigest()    # 计算 w_rid
+    params['w_rid'] = wbi_sign
+    return params
+
+def getWbiKeys(cookie: str) -> tuple[str, str]:
+    '获取最新的 img_key 和 sub_key'
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+        'Referer': 'https://www.bilibili.com/',
+        'Cookie': cookie,  # 使用传入的 cookie
+    }
+    resp = requests.get('https://api.bilibili.com/x/web-interface/nav', headers=headers)
+    resp.raise_for_status()
+    json_content = resp.json()
+    img_url: str = json_content['data']['wbi_img']['img_url']
+    sub_url: str = json_content['data']['wbi_img']['sub_url']
+    img_key = img_url.rsplit('/', 1)[1].split('.')[0]
+    sub_key = sub_url.rsplit('/', 1)[1].split('.')[0]
+    return img_key, sub_key
+
+def wbi_sign_params(params: dict, cookie: str) -> str:
+    """
+    获取 WBI Keys 并对参数进行签名
+    """
+    img_key, sub_key = getWbiKeys(cookie)
+    signed_params = encWbi(params, img_key, sub_key)
+    return signed_params["w_rid"], signed_params["wts"]
