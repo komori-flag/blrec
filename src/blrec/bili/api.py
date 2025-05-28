@@ -303,6 +303,7 @@ class WebApi(BaseApi):
         w_rid, wts = wbi_sign_params(params.copy(), cookie)
         params["w_rid"] = w_rid
         params["wts"] = wts
+        params["web_location"] = '444.8'
         json_res = await self._get_json(self.base_live_api_urls, path, params=params)
         return json_res['data']
 
