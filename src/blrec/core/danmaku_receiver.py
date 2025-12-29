@@ -40,6 +40,9 @@ class DanmakuReceiver(DanmakuListener, StoppableMixin):
         msg: DanmakuMsg
 
         if cmd.startswith(DanmakuCommand.DANMU_MSG.value):
+            if danmu.get('info', None) is None:
+                # 防止单条弹幕信息没有info属性
+                return 
             msg = DanmuMsg.from_danmu(danmu)
         elif cmd == DanmakuCommand.SEND_GIFT.value:
             msg = GiftSendMsg.from_danmu(danmu)
