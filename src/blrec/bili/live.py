@@ -70,7 +70,7 @@ class Live:
         self._html_page_url = f'https://live.bilibili.com/{room_id}'
 
         self._session = aiohttp.ClientSession(
-            connector=connector,
+            connector=connector(),
             connector_owner=False,
             raise_for_status=True,
             trust_env=True,
@@ -485,7 +485,7 @@ class Live:
     async def get_live_stream_resolution(self) -> Tuple[int, int]:
         start_time = time.time()
         max_wait = 300  # 最大重试时间300秒
-        _qn = [10000, 250]
+        _qn = [10000, 25000, 250]
         _format = ['flv', 'ts', 'fmp4']
         _codec = ['avc', 'hevc']
         i = j = k = 0

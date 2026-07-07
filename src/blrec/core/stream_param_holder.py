@@ -73,6 +73,8 @@ class StreamParamHolder:
     def fall_back_quality(self, qn) -> None:
         if qn == 150 or qn == 10000:
             self._real_quality_number = 250
+        elif qn == 25000:
+            self._real_quality_number = 10000
         else:
             self._real_quality_number = 10000
         return self._real_quality_number

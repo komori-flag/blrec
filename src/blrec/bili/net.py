@@ -14,5 +14,15 @@ else:
     requests.packages.urllib3.util.connection.HAS_IPV6 = False  # type: ignore
     family = socket.AF_INET
 
-connector = aiohttp.TCPConnector(family=family, limit=200)
+
+_connector: aiohttp.TCPConnector = None  # type: ignore[assignment]
+
+
+def connector() -> aiohttp.TCPConnector:
+    global _connector
+    if _connector is None:
+        _connector = aiohttp.TCPConnector(family=family, limit=200)
+    return _connector
+
+
 timeout = aiohttp.ClientTimeout(total=10)

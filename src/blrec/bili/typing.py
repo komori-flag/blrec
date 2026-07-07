@@ -5,6 +5,7 @@ ApiPlatform = Literal['web', 'android']
 
 QualityNumber = Literal[
     30000,  # 杜比
+    25000,  # 原画真彩
     20000,  # 4K
     15000,  # 2K
     10000,  # 原画

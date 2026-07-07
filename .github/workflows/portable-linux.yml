@@ -1,0 +1,107 @@
+name: Linux portable
+
+on:
+  push:
+    tags:
+      - v*.*.*
+  workflow_dispatch:
+
+env:
+  FFMPEG_ARCHIVE_URL: https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-lgpl-static.tar.xz
+  FFMPEG_ARCHIVE_NAME: ffmpeg-master-latest-linux64-lgpl-static.tar.xz
+
+jobs:
+
+  build:
+    name: Build Linux x64 portable distributions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Build webapp
+        working-directory: webapp
+        run: |
+          npm install
+          npm run build
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends patchelf
+
+      - name: Install Python packages
+        run: |
+          pip install .
+          pip install pyinstaller
+
+      - name: Download ffmpeg archive
+        run: |
+          wget -q "$FFMPEG_ARCHIVE_URL" -O ffmpeg.tar.xz
+
+      - name: Prepare build directory
+        run: |
+          mkdir -p build dist
+          # Extract ffmpeg
+          tar -xJf ffmpeg.tar.xz -C build/
+          # Rename ffmpeg directory
+          mv build/ffmpeg-master-latest-linux64-lgpl-static build/ffmpeg
+
+      - name: Sliming ffmpeg
+        working-directory: build
+        run: |
+          rm -rf ffmpeg/{doc,include,lib,share}
+          ls -lh ffmpeg/bin/
+
+      - name: Build standalone executable with PyInstaller
+        run: |
+          pyinstaller --onedir \
+            --name blrec \
+            --add-data "src/blrec/data/webapp:blrec/data/webapp" \
+            --hidden-import blrec \
+            --collect-all blrec \
+            --collect-data blrec \
+            src/blrec/cli/main.py
+
+      - name: Bundle ffmpeg with the build
+        run: |
+          cp -r build/ffmpeg dist/blrec/
+          # Create a portable run script
+          cat > dist/blrec/run.sh << 'SCRIPT'
+#!/usr/bin/env bash
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+export PATH="$SCRIPT_DIR/ffmpeg/bin:$PATH"
+exec "$SCRIPT_DIR/blrec" "$@"
+SCRIPT
+          chmod +x dist/blrec/run.sh
+
+      - name: Verify build
+        run: |
+          ls -lh dist/blrec/
+          dist/blrec/blrec --help
+
+      - name: Create tar archive
+        run: |
+          cd dist
+          tar -czf "blrec-${{ github.ref_name }}-linux64.tar.gz" blrec/
+          ls -lh "blrec-${{ github.ref_name }}-linux64.tar.gz"
+
+      - name: Upload distributions to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/*.tar.gz
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true

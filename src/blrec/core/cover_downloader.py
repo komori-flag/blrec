@@ -98,7 +98,7 @@ class CoverDownloader(
     @retry(reraise=True, wait=wait_fixed(1), stop=stop_after_attempt(3))
     async def _fetch_cover(self, url: str) -> bytes:
         async with aiohttp.ClientSession(
-            connector=connector,
+            connector=connector(),
             connector_owner=False,
             raise_for_status=True,
             trust_env=True,

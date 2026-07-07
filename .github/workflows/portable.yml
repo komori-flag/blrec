@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - v*.*.*
+  workflow_dispatch:
 
 env:
   FFMPEG_ARCHIVE_URL: https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl-shared.zip
@@ -18,10 +19,21 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2.3.5
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Build webapp
+        working-directory: webapp
+        run: |
+          npm install
+          npm run build
 
       - name: Setup Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11.5"
 
@@ -57,18 +69,13 @@ jobs:
       - name: Install packages
         working-directory: build
         run: |
-          ls ${{ github.workspace }}
           .\venv\Scripts\activate
           pip install ${{ github.workspace }}
-          ls venv\Lib\site-packages
 
       - name: Copy site-packages
         shell: cmd
         working-directory: build
         run: (robocopy venv\Lib\site-packages python\Lib\site-packages /mir /xd __pycache__* pip* setuptools*) ^& IF %ERRORLEVEL% LSS 8 SET ERRORLEVEL = 0
-        # https://ss64.com/nt/robocopy-exit.html
-        # https://superuser.com/questions/280425/getting-robocopy-to-return-a-proper-exit-code
-        # https://social.msdn.microsoft.com/Forums/en-US/d599833c-dcea-46f5-85e9-b1f028a0fefe/robocopy-exits-with-error-code-1
 
       - name: Add search path
         working-directory: build
@@ -84,7 +91,6 @@ jobs:
 
       - name: Zip files
         run: |
-          ls build
           Compress-Archive -Path @("build\run.bat", "build\run.ps1", "build\python", "build\ffmpeg") -DestinationPath "dist\blrec-${{ github.ref_name }}-win64.zip"
           ls dist
 
