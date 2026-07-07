@@ -78,12 +78,10 @@ jobs:
         run: |
           cp -r build/ffmpeg dist/blrec/
           # Create a portable run script
-          cat > dist/blrec/run.sh << 'SCRIPT'
-#!/usr/bin/env bash
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-export PATH="$SCRIPT_DIR/ffmpeg/bin:$PATH"
-exec "$SCRIPT_DIR/blrec" "$@"
-SCRIPT
+          printf '%s\n' '#!/usr/bin/env bash' \
+            'SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"' \
+            'export PATH="$SCRIPT_DIR/ffmpeg/bin:$PATH"' \
+            'exec "$SCRIPT_DIR/blrec" "$@"' > dist/blrec/run.sh
           chmod +x dist/blrec/run.sh
 
       - name: Verify build
