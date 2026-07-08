@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  blrec:
+    build: .
+    container_name: blrec
+    restart: unless-stopped
+    ports:
+      - "2233:2233"
+    volumes:
+      # 配置文件目录（首次运行会自动生成 default settings.toml）
+      - ./cfg:/cfg
+      # 日志文件目录
+      - ./log:/log
+      # 录播文件存储目录
+      - ./rec:/rec
+    environment:
+      # 时区设置
+      - TZ=Asia/Shanghai
+      # API key（可选，建议修改）
+      # - BLREC_API_KEY=your_api_key_here
+      # 指定配置文件路径（可选，默认 /cfg/settings.toml）
+      # - BLREC_DEFAULT_SETTINGS_FILE=/cfg/settings.toml
+      # 仅 IPv4（可选）
+      # - BLREC_IPV4=1
+    # 如需传递额外命令行参数，取消注释并修改：
+    # command: ["--api-key", "your_api_key"]
