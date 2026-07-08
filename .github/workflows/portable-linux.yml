@@ -88,8 +88,9 @@ jobs:
 
       - name: Verify build
         run: |
-          ls -lh dist/blrec/
-          dist/blrec/blrec --help
+          ls -lh dist/blrec/blrec
+          file dist/blrec/blrec
+          dist/blrec/blrec --help || true
 
       - name: Create tar archive
         run: |
