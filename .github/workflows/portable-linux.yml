@@ -6,9 +6,6 @@ on:
       - v*.*.*
   workflow_dispatch:
 
-env:
-  FFMPEG_ARCHIVE_NAME: ffmpeg-master-latest-linux64-lgpl-static.tar.xz
-
 jobs:
 
   build:
@@ -47,26 +44,27 @@ jobs:
 
       - name: Download ffmpeg archive
         run: |
-          # Get the actual latest release tag via GitHub API
-          LATEST_TAG=$(curl -sL https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])")
-          FFMPEG_URL="https://github.com/BtbN/FFmpeg-Builds/releases/download/${LATEST_TAG}/ffmpeg-master-latest-linux64-lgpl-static.tar.xz"
-          echo "Downloading from: $FFMPEG_URL"
-          curl -L --retry 3 --retry-delay 5 "$FFMPEG_URL" -o ffmpeg.tar.xz
+          # Use GitHub API to get the exact download URL for the linux64 lgpl-static build
+          DOWNLOAD_URL=$(curl -sL https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest | jq -r '.assets[] | select(.name == "ffmpeg-master-latest-linux64-lgpl-static.tar.xz") | .browser_download_url')
+          echo "Downloading from: $DOWNLOAD_URL"
+          curl -L --retry 3 --retry-delay 5 "$DOWNLOAD_URL" -o ffmpeg.tar.xz
           file ffmpeg.tar.xz
+
+      - name: Unpack ffmpeg archive
+        run: |
+          mkdir -p build/ffmpeg
+          tar -xJf ffmpeg.tar.xz -C build/
+          # Rename the extracted directory to a fixed name
+          mv build/ffmpeg-master-latest-linux64-lgpl-static build/ffmpeg-tmp
+          # Only copy bin/ (the static binaries, no shared libs needed)
+          mkdir -p build/ffmpeg/bin
+          cp build/ffmpeg-tmp/bin/ffmpeg build/ffmpeg/bin/
+          cp build/ffmpeg-tmp/bin/ffprobe build/ffmpeg/bin/
+          ls -lh build/ffmpeg/bin/
 
       - name: Prepare build directory
         run: |
-          mkdir -p build dist
-          # Extract ffmpeg
-          tar -xJf ffmpeg.tar.xz -C build/
-          # Rename ffmpeg directory
-          mv build/ffmpeg-master-latest-linux64-lgpl-static build/ffmpeg
-
-      - name: Sliming ffmpeg
-        working-directory: build
-        run: |
-          rm -rf ffmpeg/{doc,include,lib,share}
-          ls -lh ffmpeg/bin/
+          mkdir -p dist
 
       - name: Build standalone executable with PyInstaller
         run: |
