@@ -81,10 +81,35 @@ jobs:
         run: |
           cp -r build/ffmpeg dist/blrec/
           # Create a portable run script
-          printf '%s\n' '#!/usr/bin/env bash' \
+          printf '%s\n' \
+            '#!/usr/bin/env bash' \
+            '#' \
+            '# Bilibili Live Streaming Recorder (blrec) 便携版' \
+            '# =============================================' \
+            '#' \
+            '# 主机和端口绑定，可以按需修改。' \
+            '# 关于 api key:' \
+            '#   api key 可以使用数字和字母，长度限制为最短 8 最长 80。' \
+            '#   3 次尝试内 api key 正确客户端 ip 会自动加入白名单，' \
+            '#   3 次错误后则 ip 会被加入黑名单，黑名单后请求会被拒绝 (403)。' \
+            '#   请自行修改 api key，不要使用默认的 api key。' \
+            '#' \
+            '# 首次运行会自动生成默认配置文件。' \
+            '' \
             'SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"' \
             'export PATH="$SCRIPT_DIR/ffmpeg/bin:$PATH"' \
-            'exec "$SCRIPT_DIR/blrec" "$@"' > dist/blrec/run.sh
+            '' \
+            'export no_proxy="*"' \
+            '' \
+            'HOST="0.0.0.0"' \
+            'PORT=2233' \
+            'API_KEY="bili2233"' \
+            '' \
+            'export BLREC_DEFAULT_LOG_DIR="${SCRIPT_DIR}/日志文件"' \
+            'export BLREC_DEFAULT_OUT_DIR="${SCRIPT_DIR}/录播文件"' \
+            '' \
+            'exec "$SCRIPT_DIR/blrec" -c "${SCRIPT_DIR}/settings.toml" --host "$HOST" --port "$PORT" --api-key "$API_KEY" --ipv4 "$@"' \
+            > dist/blrec/run.sh
           chmod +x dist/blrec/run.sh
 
       - name: Verify build
