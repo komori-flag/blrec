@@ -45,7 +45,7 @@ jobs:
       - name: Download ffmpeg archive
         run: |
           # Use GitHub API to get the exact download URL for the linux64 lgpl-static build
-          DOWNLOAD_URL=$(curl -sL https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest | jq -r '.assets[] | select(.name == "ffmpeg-master-latest-linux64-lgpl-static.tar.xz") | .browser_download_url')
+          DOWNLOAD_URL=$(curl -sL https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest | jq -r '.assets[] | select(.name == "ffmpeg-master-latest-linux64-lgpl.tar.xz") | .browser_download_url')
           echo "Downloading from: $DOWNLOAD_URL"
           curl -L --retry 3 --retry-delay 5 "$DOWNLOAD_URL" -o ffmpeg.tar.xz
           file ffmpeg.tar.xz
@@ -55,7 +55,7 @@ jobs:
           mkdir -p build/ffmpeg
           tar -xJf ffmpeg.tar.xz -C build/
           # Rename the extracted directory to a fixed name
-          mv build/ffmpeg-master-latest-linux64-lgpl-static build/ffmpeg-tmp
+          mv build/ffmpeg-master-* build/ffmpeg-tmp
           # Only copy bin/ (the static binaries, no shared libs needed)
           mkdir -p build/ffmpeg/bin
           cp build/ffmpeg-tmp/bin/ffmpeg build/ffmpeg/bin/
