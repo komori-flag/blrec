@@ -1,2 +1,12 @@
 */__pycache__*
 */.mypy_cache*
+.git
+.venv
+venv
+webapp/node_modules
+webapp/.angular
+__pycache__/
+*.pyc
+.gitignore
+Dockerfile*
+!.dockerignore
