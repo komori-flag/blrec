@@ -74,7 +74,7 @@ jobs:
             --hidden-import blrec \
             --collect-all blrec \
             --collect-data blrec \
-            src/blrec/cli/main.py
+            pyinstaller_entry.py
 
       - name: Bundle ffmpeg with the build
         run: |
